@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Medication PDF Extractor</title>
+    <meta
+      name="description"
+      content="Upload Medicare-related PDFs, extract exact medication rows, and write them to Google Sheets."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=DM+Serif+Display:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">Railway-ready MVP</p>
+        <h1>Extract exact medication rows from uploaded PDFs.</h1>
+        <p class="hero-copy">
+          Drop one or more PDFs and preview the rows before writing anything to
+          Google Sheets. This version preserves each document row separately and
+          leaves fields blank when they are not explicitly found in the PDF.
+        </p>
+      </header>
+
+      <main class="layout">
+        <section class="panel upload-panel">
+          <div
+            id="dropzone"
+            class="dropzone"
+            tabindex="0"
+            role="button"
+            aria-label="Upload PDF files"
+          >
+            <input id="fileInput" type="file" accept="application/pdf" multiple />
+            <div class="dropzone-inner">
+              <div class="dropzone-icon">PDF</div>
+              <h2>Drop PDFs here</h2>
+              <p>or click to select files from your computer</p>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="clearButton" class="ghost-button" type="button">
+              Clear results
+            </button>
+          </div>
+
+          <div class="status-card">
+            <h3>Extraction rules</h3>
+            <ul>
+              <li>Each medication row is kept separate</li>
+              <li>No deduping or combining across files</li>
+              <li>Fields stay blank if they are not clearly present</li>
+            </ul>
+          </div>
+
+          <div class="settings-card">
+            <div class="settings-head">
+              <div>
+                <p class="eyebrow">Google Sheets</p>
+                <h3>Append extracted rows</h3>
+              </div>
+              <span id="configBadge" class="config-badge">Checking config</span>
+            </div>
+
+            <label class="field">
+              <span>Spreadsheet ID</span>
+              <input
+                id="spreadsheetIdInput"
+                type="text"
+                placeholder="Paste the Google Sheet ID"
+                autocomplete="off"
+              />
+            </label>
+
+            <label class="field">
+              <span>Range</span>
+              <input
+                id="sheetRangeInput"
+                type="text"
+                placeholder="Medications!A:M"
+                autocomplete="off"
+              />
+            </label>
+
+            <label class="field">
+              <span>Google Drive Folder ID</span>
+              <input
+                id="driveFolderIdInput"
+                type="text"
+                placeholder="Optional shared folder ID"
+                autocomplete="off"
+              />
+            </label>
+
+            <div class="actions settings-actions">
+              <button id="saveSettingsButton" class="ghost-button" type="button">
+                Save settings
+              </button>
+              <span id="settingsStatus" class="inline-status" aria-live="polite"></span>
+            </div>
+
+            <button id="appendButton" class="solid-button full-width" type="button" disabled>
+              Upload PDFs to Drive and write exact rows
+            </button>
+            <p class="settings-note">
+              The sheet should already include the headers shown in the preview:
+              First Name through Date of Birth. The `Source` column will be the
+              Google Drive file link for the original PDF.
+            </p>
+            <p class="settings-note">
+              These target settings are saved on the server. Keep the Google
+              service account credentials in Railway environment variables.
+            </p>
+            <p id="sheetStatus" class="sheet-status" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="panel results-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Results</p>
+              <h2>Exact row preview</h2>
+            </div>
+            <button id="copyButton" class="solid-button" type="button" disabled>
+              Copy JSON
+            </button>
+          </div>
+
+          <div id="emptyState" class="empty-state">
+            Upload a PDF to see the extracted fields here.
+          </div>
+
+          <section id="summaryCard" class="summary-card hidden">
+            <h3>Preview summary</h3>
+            <div class="summary-grid">
+              <div>
+                <span class="label">Files parsed</span>
+                <strong id="summaryFileCount">0</strong>
+              </div>
+              <div>
+                <span class="label">Rows ready to write</span>
+                <strong id="summaryRowCount">0</strong>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Source</th>
+                    <th>Med</th>
+                    <th>Medication Type</th>
+                    <th>Dosage</th>
+                    <th>Frequency Taken</th>
+                    <th>Refill Schedule</th>
+                    <th>Signature Date</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>Date of Birth</th>
+                  </tr>
+                </thead>
+                <tbody id="previewTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <div id="resultsList" class="results-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
