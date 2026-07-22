@@ -11,169 +11,246 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=DM+Serif+Display:ital@0;1&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="hero">
-        <p class="eyebrow">Railway-ready MVP</p>
-        <h1>Extract exact medication rows from uploaded PDFs.</h1>
-        <p class="hero-copy">
-          Drop one or more PDFs and preview the rows before writing anything to
-          Google Sheets. This version preserves each document row separately and
-          leaves fields blank when they are not explicitly found in the PDF.
-        </p>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span class="brand-blue"></span>
+            <span class="brand-red"></span>
+            <span class="brand-yellow"></span>
+            <span class="brand-green"></span>
+          </div>
+          <div>
+            <p class="brand-kicker">Medication Workspace</p>
+            <h1>PDF Extractor</h1>
+          </div>
+        </div>
+
+        <nav class="topnav" aria-label="Primary">
+          <a class="nav-link" href="#upload" data-page-link="upload">Upload</a>
+          <a class="nav-link" href="#settings" data-page-link="settings">Settings</a>
+        </nav>
+
+        <div id="navConfigBadge" class="nav-status">Checking server</div>
       </header>
 
-      <main class="layout">
-        <section class="panel upload-panel">
-          <div
-            id="dropzone"
-            class="dropzone"
-            tabindex="0"
-            role="button"
-            aria-label="Upload PDF files"
-          >
-            <input id="fileInput" type="file" accept="application/pdf" multiple />
-            <div class="dropzone-inner">
-              <div class="dropzone-icon">PDF</div>
-              <h2>Drop PDFs here</h2>
-              <p>or click to select files from your computer</p>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button id="clearButton" class="ghost-button" type="button">
-              Clear results
-            </button>
-          </div>
-
-          <div class="status-card">
-            <h3>Extraction rules</h3>
-            <ul>
-              <li>Each medication row is kept separate</li>
-              <li>No deduping or combining across files</li>
-              <li>Fields stay blank if they are not clearly present</li>
-            </ul>
-          </div>
-
-          <div class="settings-card">
-            <div class="settings-head">
-              <div>
-                <p class="eyebrow">Google Sheets</p>
-                <h3>Append extracted rows</h3>
-              </div>
-              <span id="configBadge" class="config-badge">Checking config</span>
-            </div>
-
-            <label class="field">
-              <span>Spreadsheet ID</span>
-              <input
-                id="spreadsheetIdInput"
-                type="text"
-                placeholder="Paste the Google Sheet ID"
-                autocomplete="off"
-              />
-            </label>
-
-            <label class="field">
-              <span>Range</span>
-              <input
-                id="sheetRangeInput"
-                type="text"
-                placeholder="Medications!A:M"
-                autocomplete="off"
-              />
-            </label>
-
-            <label class="field">
-              <span>Google Drive Folder ID</span>
-              <input
-                id="driveFolderIdInput"
-                type="text"
-                placeholder="Optional shared folder ID"
-                autocomplete="off"
-              />
-            </label>
-
-            <div class="actions settings-actions">
-              <button id="saveSettingsButton" class="ghost-button" type="button">
-                Save settings
-              </button>
-              <span id="settingsStatus" class="inline-status" aria-live="polite"></span>
-            </div>
-
-            <button id="appendButton" class="solid-button full-width" type="button" disabled>
-              Upload PDFs to Drive and write exact rows
-            </button>
-            <p class="settings-note">
-              The sheet should already include the headers shown in the preview:
-              First Name through Date of Birth. The `Source` column will be the
-              Google Drive file link for the original PDF.
-            </p>
-            <p class="settings-note">
-              These target settings are saved on the server. Keep the Google
-              service account credentials in Railway environment variables.
-            </p>
-            <p id="sheetStatus" class="sheet-status" aria-live="polite"></p>
-          </div>
-        </section>
-
-        <section class="panel results-panel">
-          <div class="panel-head">
+      <main class="content-shell">
+        <section id="uploadPage" class="page-view" data-page="upload">
+          <section class="hero-card">
             <div>
-              <p class="eyebrow">Results</p>
-              <h2>Exact row preview</h2>
+              <p class="eyebrow">Upload and review</p>
+              <h2>Extract exact medication rows before anything gets written.</h2>
+              <p class="hero-copy">
+                Drop one or more PDFs, preview the rows exactly as found, then
+                send the original file to Google Drive and the extracted rows to
+                Google Sheets.
+              </p>
             </div>
-            <button id="copyButton" class="solid-button" type="button" disabled>
-              Copy JSON
-            </button>
-          </div>
-
-          <div id="emptyState" class="empty-state">
-            Upload a PDF to see the extracted fields here.
-          </div>
-
-          <section id="summaryCard" class="summary-card hidden">
-            <h3>Preview summary</h3>
-            <div class="summary-grid">
-              <div>
-                <span class="label">Files parsed</span>
-                <strong id="summaryFileCount">0</strong>
-              </div>
-              <div>
-                <span class="label">Rows ready to write</span>
-                <strong id="summaryRowCount">0</strong>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table class="results-table">
-                <thead>
-                  <tr>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Source</th>
-                    <th>Med</th>
-                    <th>Medication Type</th>
-                    <th>Dosage</th>
-                    <th>Frequency Taken</th>
-                    <th>Refill Schedule</th>
-                    <th>Signature Date</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Address</th>
-                    <th>Date of Birth</th>
-                  </tr>
-                </thead>
-                <tbody id="previewTableBody"></tbody>
-              </table>
+            <div class="hero-actions">
+              <a class="hero-link" href="#settings">Open settings</a>
+              <p class="hero-note">
+                The `Source` column becomes the Google Drive link for the
+                original PDF.
+              </p>
             </div>
           </section>
 
-          <div id="resultsList" class="results-list"></div>
+          <section class="upload-grid">
+            <article class="surface upload-surface">
+              <div
+                id="dropzone"
+                class="dropzone"
+                tabindex="0"
+                role="button"
+                aria-label="Upload PDF files"
+              >
+                <input
+                  id="fileInput"
+                  type="file"
+                  accept="application/pdf"
+                  multiple
+                />
+                <div class="dropzone-inner">
+                  <div class="dropzone-icon">PDF</div>
+                  <h3>Drop PDFs here</h3>
+                  <p>or click to select files from your computer</p>
+                </div>
+              </div>
+
+              <div class="upload-actions">
+                <button id="clearButton" class="text-button" type="button">
+                  Clear results
+                </button>
+                <button id="copyButton" class="primary-button" type="button" disabled>
+                  Copy JSON
+                </button>
+              </div>
+            </article>
+
+            <article class="surface info-surface">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Checklist</p>
+                  <h3>Keep extraction exact</h3>
+                </div>
+              </div>
+
+              <ul class="rule-list">
+                <li>Each medication row stays separate.</li>
+                <li>No combining or deduping across files.</li>
+                <li>Missing fields stay blank instead of guessed.</li>
+              </ul>
+
+              <div class="summary-strip">
+                <div class="metric">
+                  <span>Files parsed</span>
+                  <strong id="summaryFileCount">0</strong>
+                </div>
+                <div class="metric">
+                  <span>Rows ready</span>
+                  <strong id="summaryRowCount">0</strong>
+                </div>
+              </div>
+
+              <button
+                id="appendButton"
+                class="primary-button full-width"
+                type="button"
+                disabled
+              >
+                Upload PDFs to Drive and write exact rows
+              </button>
+              <p id="sheetStatus" class="support-text" aria-live="polite"></p>
+            </article>
+          </section>
+
+          <section class="surface results-surface">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Preview</p>
+                <h3>Exact row preview</h3>
+              </div>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+              Upload a PDF to see extracted rows and document details.
+            </div>
+
+            <section id="summaryCard" class="summary-card hidden">
+              <div class="table-wrap">
+                <table class="results-table">
+                  <thead>
+                    <tr>
+                      <th>First Name</th>
+                      <th>Last Name</th>
+                      <th>Source</th>
+                      <th>Med</th>
+                      <th>Medication Type</th>
+                      <th>Dosage</th>
+                      <th>Frequency Taken</th>
+                      <th>Refill Schedule</th>
+                      <th>Signature Date</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Address</th>
+                      <th>Date of Birth</th>
+                    </tr>
+                  </thead>
+                  <tbody id="previewTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <div id="resultsList" class="results-list"></div>
+          </section>
+        </section>
+
+        <section id="settingsPage" class="page-view hidden" data-page="settings">
+          <section class="hero-card settings-hero">
+            <div>
+              <p class="eyebrow">Settings</p>
+              <h2>Control where the app writes without changing code.</h2>
+              <p class="hero-copy">
+                Save the spreadsheet, range, and Drive folder in the app. Google
+                credentials still stay server-side in Railway.
+              </p>
+            </div>
+          </section>
+
+          <section class="settings-grid">
+            <article class="surface settings-surface">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Destinations</p>
+                  <h3>Google targets</h3>
+                </div>
+                <span id="configBadge" class="panel-badge">Checking config</span>
+              </div>
+
+              <label class="field">
+                <span>Spreadsheet ID</span>
+                <input
+                  id="spreadsheetIdInput"
+                  type="text"
+                  placeholder="Paste the Google Sheet ID"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label class="field">
+                <span>Range</span>
+                <input
+                  id="sheetRangeInput"
+                  type="text"
+                  placeholder="Medications!A:M"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label class="field">
+                <span>Google Drive Folder ID</span>
+                <input
+                  id="driveFolderIdInput"
+                  type="text"
+                  placeholder="Paste the destination folder ID"
+                  autocomplete="off"
+                />
+              </label>
+
+              <div class="settings-actions">
+                <button id="saveSettingsButton" class="primary-button" type="button">
+                  Save settings
+                </button>
+                <span id="settingsStatus" class="support-text" aria-live="polite"></span>
+              </div>
+            </article>
+
+            <article class="surface helper-surface">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Server</p>
+                  <h3>What belongs in Railway</h3>
+                </div>
+              </div>
+
+              <ul class="rule-list">
+                <li>`GOOGLE_SERVICE_ACCOUNT_EMAIL`</li>
+                <li>`GOOGLE_PRIVATE_KEY`</li>
+                <li>`SETTINGS_FILE_PATH` if you want persistent saved settings</li>
+              </ul>
+
+              <p class="support-text">
+                Share both the Google Sheet and the Google Drive folder with the
+                service account email.
+              </p>
+            </article>
+          </section>
         </section>
       </main>
     </div>
