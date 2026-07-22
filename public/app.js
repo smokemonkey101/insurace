@@ -20,6 +20,7 @@ const SHEET_COLUMNS = [
 ];
 
 const state = {
+  currentPage: getPageFromHash(),
   isSavingSettings: false,
   isWriting: false,
   results: [],
@@ -35,12 +36,15 @@ const dom = {
   dropzone: document.getElementById("dropzone"),
   emptyState: document.getElementById("emptyState"),
   fileInput: document.getElementById("fileInput"),
+  navConfigBadge: document.getElementById("navConfigBadge"),
+  pageLinks: [...document.querySelectorAll("[data-page-link]")],
+  pageViews: [...document.querySelectorAll("[data-page]")],
   previewTableBody: document.getElementById("previewTableBody"),
   resultsList: document.getElementById("resultsList"),
   saveSettingsButton: document.getElementById("saveSettingsButton"),
+  settingsStatus: document.getElementById("settingsStatus"),
   sheetRangeInput: document.getElementById("sheetRangeInput"),
   sheetStatus: document.getElementById("sheetStatus"),
-  settingsStatus: document.getElementById("settingsStatus"),
   spreadsheetIdInput: document.getElementById("spreadsheetIdInput"),
   summaryCard: document.getElementById("summaryCard"),
   summaryFileCount: document.getElementById("summaryFileCount"),
@@ -52,9 +56,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 bindEvents();
 await loadServerConfig();
+syncPageFromHash();
 render();
 
 function bindEvents() {
+  window.addEventListener("hashchange", handleHashChange);
   dom.dropzone.addEventListener("dragenter", activateDropzone);
   dom.dropzone.addEventListener("dragover", activateDropzone);
   dom.dropzone.addEventListener("dragleave", deactivateDropzone);
@@ -68,6 +74,27 @@ function bindEvents() {
   dom.spreadsheetIdInput.addEventListener("input", handleSettingsInput);
   dom.sheetRangeInput.addEventListener("input", handleSettingsInput);
   dom.driveFolderIdInput.addEventListener("input", handleSettingsInput);
+}
+
+function getPageFromHash() {
+  return window.location.hash === "#settings" ? "settings" : "upload";
+}
+
+function handleHashChange() {
+  syncPageFromHash();
+}
+
+function syncPageFromHash() {
+  state.currentPage = getPageFromHash();
+
+  for (const pageView of dom.pageViews) {
+    const isActive = pageView.dataset.page === state.currentPage;
+    pageView.classList.toggle("hidden", !isActive);
+  }
+
+  for (const pageLink of dom.pageLinks) {
+    pageLink.classList.toggle("is-active", pageLink.dataset.pageLink === state.currentPage);
+  }
 }
 
 async function loadServerConfig() {
@@ -98,7 +125,10 @@ async function loadServerConfig() {
     dom.driveFolderIdInput.value = "";
     dom.spreadsheetIdInput.value = "";
     dom.sheetRangeInput.value = "Medications!A:M";
-    setSheetStatus("Could not load server config. You can still enter the sheet details manually.", "error");
+    setSheetStatus(
+      "Could not load server config. You can still enter the sheet details manually.",
+      "error"
+    );
     setSettingsStatus("Settings could not be loaded from the server.", "error");
   }
 }
@@ -322,7 +352,9 @@ function extractSharedFields(lines, text) {
 function extractExactName(lines, text) {
   const lineIndex = lines.findIndex((line) => line === "NAME EMAIL PHONE");
   if (lineIndex >= 0 && lines[lineIndex + 1]) {
-    const candidate = lines[lineIndex + 1].match(/^([A-Za-z][A-Za-z.'-]+(?:\s+[A-Za-z][A-Za-z.'-]+)+)\b/);
+    const candidate = lines[lineIndex + 1].match(
+      /^([A-Za-z][A-Za-z.'-]+(?:\s+[A-Za-z][A-Za-z.'-]+)+)\b/
+    );
     if (candidate?.[1]) {
       return candidate[1].trim();
     }
@@ -335,7 +367,9 @@ function extractExactName(lines, text) {
 
   const matches = [
     text.match(/Beneficiary Name:\s*([^\n]+)/i),
-    text.match(/Print Name:\s*_*\s*([A-Za-z][A-Za-z.'-]+(?:\s+[A-Za-z][A-Za-z.'-]+)+)/i)
+    text.match(
+      /Print Name:\s*_*\s*([A-Za-z][A-Za-z.'-]+(?:\s+[A-Za-z][A-Za-z.'-]+)+)/i
+    )
   ];
 
   for (const match of matches) {
@@ -370,7 +404,9 @@ function extractExactPhone(text) {
 }
 
 function extractExactAddress(lines) {
-  const worksheetHeaderIndex = lines.findIndex((line) => line === "ADDRESS COUNTY PREFERRED PHARMACY");
+  const worksheetHeaderIndex = lines.findIndex(
+    (line) => line === "ADDRESS COUNTY PREFERRED PHARMACY"
+  );
   if (worksheetHeaderIndex >= 0) {
     const nextLine = lines[worksheetHeaderIndex + 1] || "";
     const match = nextLine.match(/(.+?\d{5})\b/);
@@ -379,7 +415,9 @@ function extractExactAddress(lines) {
     }
   }
 
-  const beneficiaryInfoIndex = lines.findIndex((line) => line === "Beneficiary information");
+  const beneficiaryInfoIndex = lines.findIndex(
+    (line) => line === "Beneficiary information"
+  );
   if (beneficiaryInfoIndex >= 0) {
     const collected = [];
     let started = false;
@@ -433,7 +471,11 @@ function extractExactSignatureDate(lines, text) {
 
   const printNameIndex = lines.findIndex((line) => /^Print Name:/i.test(line));
   if (printNameIndex >= 0) {
-    for (let index = printNameIndex + 1; index < Math.min(lines.length, printNameIndex + 4); index += 1) {
+    for (
+      let index = printNameIndex + 1;
+      index < Math.min(lines.length, printNameIndex + 4);
+      index += 1
+    ) {
       const match = lines[index].match(/[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}/);
       if (match?.[0]) {
         return match[0];
@@ -491,13 +533,15 @@ function extractWorksheetRows(lines, shared) {
       ? remainder.slice(0, remainder.length - refillSchedule.length).trim()
       : remainder.trim();
 
-    rows.push(buildSheetRow(shared, {
-      dosage: dosageLine.trim(),
-      frequencyTaken,
-      med,
-      medicationType,
-      refillSchedule
-    }));
+    rows.push(
+      buildSheetRow(shared, {
+        dosage: dosageLine.trim(),
+        frequencyTaken,
+        med,
+        medicationType,
+        refillSchedule
+      })
+    );
 
     index += 2;
   }
@@ -520,13 +564,18 @@ function extractPrescriptionRows(lines, shared) {
       line.startsWith("Scope of Sales Appointment") ||
       line.startsWith("Powered by")
     ) {
-      if (line === "Additional notes" || line.startsWith("Scope of Sales Appointment")) {
+      if (
+        line === "Additional notes" ||
+        line.startsWith("Scope of Sales Appointment")
+      ) {
         break;
       }
       continue;
     }
 
-    const match = line.match(/^\d+\.\s+(.+?)\s+(TAB|TABLET|CAPSULE|INJECTION|CREAM|PATCH|SPRAY)\s+([0-9A-Z.]+)$/i);
+    const match = line.match(
+      /^\d+\.\s+(.+?)\s+(TAB|TABLET|CAPSULE|INJECTION|CREAM|PATCH|SPRAY)\s+([0-9A-Z.]+)$/i
+    );
     if (!match) {
       continue;
     }
@@ -534,13 +583,15 @@ function extractPrescriptionRows(lines, shared) {
     const detailsLine = lines[index + 1] || "";
     const frequencyMatch = detailsLine.match(/Frequency:\s*(.+)$/i);
 
-    rows.push(buildSheetRow(shared, {
-      dosage: match[3].trim(),
-      frequencyTaken: frequencyMatch?.[1]?.trim() || "",
-      med: match[1].trim(),
-      medicationType: match[2].trim(),
-      refillSchedule: ""
-    }));
+    rows.push(
+      buildSheetRow(shared, {
+        dosage: match[3].trim(),
+        frequencyTaken: frequencyMatch?.[1]?.trim() || "",
+        med: match[1].trim(),
+        medicationType: match[2].trim(),
+        refillSchedule: ""
+      })
+    );
   }
 
   return rows;
@@ -628,7 +679,9 @@ async function appendRowsToSheet() {
   try {
     for (const result of resultFiles) {
       if (!result.file) {
-        throw new Error(`Missing original file for ${result.fileName}. Re-upload the PDF and try again.`);
+        throw new Error(
+          `Missing original file for ${result.fileName}. Re-upload the PDF and try again.`
+        );
       }
 
       if (!result.sourceLink) {
@@ -727,11 +780,11 @@ function render() {
         <p class="result-meta">${formatFileSize(result.fileSize)}</p>
         <div class="data-grid">
           <div>
-            <span class="label">Exact rows found</span>
+            <span class="eyebrow">Exact rows found</span>
             <strong>${result.rows.length}</strong>
           </div>
           <div>
-            <span class="label">Drive upload</span>
+            <span class="eyebrow">Drive upload</span>
             <strong>${escapeHtml(result.sourceLink ? "Ready" : "Pending")}</strong>
           </div>
         </div>
@@ -744,6 +797,7 @@ function render() {
   );
 
   updateActionState();
+  syncPageFromHash();
 }
 
 function buildPreviewText(rows) {
@@ -764,9 +818,19 @@ function updateActionState() {
   const hasCredentials = Boolean(state.serverConfig?.hasGoogleCredentials);
   dom.appendButton.disabled = !hasRows || !hasTarget || !hasCredentials || state.isWriting;
   dom.saveSettingsButton.disabled = state.isSavingSettings;
-  dom.configBadge.textContent = hasCredentials ? "Credentials ready" : "Missing server credentials";
-  dom.configBadge.classList.toggle("is-ready", hasCredentials);
-  dom.configBadge.classList.toggle("is-missing", !hasCredentials);
+  updateConfigBadge(dom.navConfigBadge, hasCredentials, "Server ready", "Missing credentials");
+  updateConfigBadge(
+    dom.configBadge,
+    hasCredentials,
+    "Credentials ready",
+    "Missing server credentials"
+  );
+}
+
+function updateConfigBadge(element, isReady, readyText, missingText) {
+  element.textContent = isReady ? readyText : missingText;
+  element.classList.toggle("is-ready", isReady);
+  element.classList.toggle("is-missing", !isReady);
 }
 
 async function uploadOriginalPdfToDrive(file, driveFolderId) {
@@ -789,15 +853,17 @@ async function uploadOriginalPdfToDrive(file, driveFolderId) {
 }
 
 function setSheetStatus(message, tone) {
-  dom.sheetStatus.textContent = message;
-  dom.sheetStatus.classList.toggle("is-error", tone === "error");
-  dom.sheetStatus.classList.toggle("is-success", tone === "success");
+  setToneMessage(dom.sheetStatus, message, tone);
 }
 
 function setSettingsStatus(message, tone) {
-  dom.settingsStatus.textContent = message;
-  dom.settingsStatus.classList.toggle("is-error", tone === "error");
-  dom.settingsStatus.classList.toggle("is-success", tone === "success");
+  setToneMessage(dom.settingsStatus, message, tone);
+}
+
+function setToneMessage(element, message, tone) {
+  element.textContent = message;
+  element.classList.toggle("is-error", tone === "error");
+  element.classList.toggle("is-success", tone === "success");
 }
 
 function formatFileSize(bytes) {
