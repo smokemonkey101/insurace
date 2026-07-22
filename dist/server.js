@@ -73,9 +73,10 @@ function sendFile(filePath, res) {
       return;
     }
     const ext = path.extname(filePath).toLowerCase();
+    const isAppAsset = ext === ".html" || ext === ".css" || ext === ".js";
     res.writeHead(200, {
       "Content-Type": mimeTypes[ext] || "application/octet-stream",
-      "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600"
+      "Cache-Control": isAppAsset ? "no-cache, no-store, must-revalidate" : "public, max-age=3600"
     });
     res.end(data);
   });
