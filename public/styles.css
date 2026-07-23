@@ -273,6 +273,10 @@ a {
   min-width: 0;
 }
 
+.helper-surface {
+  margin-top: 22px;
+}
+
 .dropzone {
   position: relative;
   min-height: 320px;
@@ -348,6 +352,10 @@ a {
   margin-bottom: 18px;
 }
 
+.section-head-tight {
+  margin-bottom: 14px;
+}
+
 .section-head h3 {
   font-size: 1.32rem;
 }
@@ -397,6 +405,22 @@ a {
 
 .full-width {
   width: 100%;
+}
+
+.inline-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.8fr);
+  gap: 14px;
+}
+
+.inline-fields-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.section-break {
+  height: 1px;
+  margin: 18px 0;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
 }
 
 .rule-list {
@@ -616,7 +640,9 @@ a {
   }
 
   .summary-strip,
-  .data-grid {
+  .data-grid,
+  .inline-fields,
+  .inline-fields-compact {
     grid-template-columns: 1fr;
   }
 

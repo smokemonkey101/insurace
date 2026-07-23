@@ -2,6 +2,8 @@
 
 Small Railway-ready Node + TypeScript website for dropping in Medicare-related PDFs, previewing exact extracted rows, and appending those rows to Google Sheets.
 
+It can also optionally create a NextAgency task for the exact patient name found in the PDF after the Google upload/write step completes.
+
 ## Stack
 
 - Node.js backend in TypeScript: [src/server.ts](E:/GPT Code2/mom/src/server.ts)
@@ -53,8 +55,8 @@ Then open `http://localhost:3000`.
 ## Deploy to Railway
 
 1. Create a new Railway service from this folder.
-2. Use the default start command: `node dist/server.js`
-3. Add only the secret/runtime environment variables:
+2. Use the default start command: `npm start`
+3. Add the required Google/runtime environment variables:
 
 ```text
 GOOGLE_SERVICE_ACCOUNT_EMAIL=
@@ -78,7 +80,7 @@ SETTINGS_FILE_PATH=
 
 - The current app does client-side PDF parsing with PDF.js loaded from jsDelivr.
 - The Google Sheets write happens server-side so the private key never goes to the browser.
-- The settings page stores only non-secret targets: `Spreadsheet ID`, `range`, and `Drive folder ID`.
+- The settings page stores app targets and task defaults such as `Spreadsheet ID`, `Spreadsheet label`, `range`, `Drive folder ID`, `NextAgency API base URL`, `NextAgency token`, `assigned_to` user ID, and task defaults.
 - Secret Google credentials still belong in Railway environment variables.
 - `PORT` and `SETTINGS_FILE_PATH` are runtime/server settings, not user-facing app settings.
 - Drive links are intended to stay restricted to users who already have access to the shared folder.

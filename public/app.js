@@ -19,12 +19,32 @@ const SHEET_COLUMNS = [
   { key: "dateOfBirth", label: "Date of Birth" }
 ];
 
+const EMPTY_CONFIG = {
+  configLabel: "Setup needed",
+  driveFolderId: "",
+  hasGoogleCredentials: false,
+  hasNextAgencyAccessToken: false,
+  hasNextAgencyConfigured: false,
+  nextAgencyApiBaseUrl: "https://yahoo.nextbroker.io",
+  nextAgencyAssignedToDisplayName: "Shelby Holman",
+  nextAgencyAssignedToUserId: "",
+  nextAgencyCasePageSize: 50,
+  nextAgencyTaskDueTimeUtc: "05:00 AM UTC",
+  nextAgencyTaskPriority: 1,
+  nextAgencyTaskStage: "To Do",
+  nextAgencyTaskType: "Other",
+  range: "Medications!A:M",
+  settingsSaved: false,
+  spreadsheetId: "",
+  spreadsheetLabel: "Medications"
+};
+
 const state = {
   currentPage: getPageFromHash(),
   isSavingSettings: false,
   isWriting: false,
   results: [],
-  serverConfig: null
+  serverConfig: { ...EMPTY_CONFIG }
 };
 
 const dom = {
@@ -37,6 +57,22 @@ const dom = {
   emptyState: document.getElementById("emptyState"),
   fileInput: document.getElementById("fileInput"),
   navConfigBadge: document.getElementById("navConfigBadge"),
+  nextAgencyAccessTokenInput: document.getElementById("nextAgencyAccessTokenInput"),
+  nextAgencyApiBaseUrlInput: document.getElementById("nextAgencyApiBaseUrlInput"),
+  nextAgencyAssignedToDisplayNameInput: document.getElementById(
+    "nextAgencyAssignedToDisplayNameInput"
+  ),
+  nextAgencyAssignedToUserIdInput: document.getElementById(
+    "nextAgencyAssignedToUserIdInput"
+  ),
+  nextAgencyBadge: document.getElementById("nextAgencyBadge"),
+  nextAgencyCasePageSizeInput: document.getElementById("nextAgencyCasePageSizeInput"),
+  nextAgencyTaskDueTimeUtcInput: document.getElementById(
+    "nextAgencyTaskDueTimeUtcInput"
+  ),
+  nextAgencyTaskPriorityInput: document.getElementById("nextAgencyTaskPriorityInput"),
+  nextAgencyTaskStageInput: document.getElementById("nextAgencyTaskStageInput"),
+  nextAgencyTaskTypeInput: document.getElementById("nextAgencyTaskTypeInput"),
   pageLinks: [...document.querySelectorAll("[data-page-link]")],
   pageViews: [...document.querySelectorAll("[data-page]")],
   previewTableBody: document.getElementById("previewTableBody"),
@@ -46,9 +82,12 @@ const dom = {
   sheetRangeInput: document.getElementById("sheetRangeInput"),
   sheetStatus: document.getElementById("sheetStatus"),
   spreadsheetIdInput: document.getElementById("spreadsheetIdInput"),
+  spreadsheetLabelInput: document.getElementById("spreadsheetLabelInput"),
   summaryCard: document.getElementById("summaryCard"),
   summaryFileCount: document.getElementById("summaryFileCount"),
-  summaryRowCount: document.getElementById("summaryRowCount")
+  summaryRowCount: document.getElementById("summaryRowCount"),
+  taskDueDateInput: document.getElementById("taskDueDateInput"),
+  taskTitleInput: document.getElementById("taskTitleInput")
 };
 
 const pdfjsLib = await import(pdfModuleUrl);
@@ -71,9 +110,26 @@ function bindEvents() {
   dom.copyButton.addEventListener("click", copyJson);
   dom.appendButton.addEventListener("click", appendRowsToSheet);
   dom.saveSettingsButton.addEventListener("click", saveSettings);
-  dom.spreadsheetIdInput.addEventListener("input", handleSettingsInput);
-  dom.sheetRangeInput.addEventListener("input", handleSettingsInput);
-  dom.driveFolderIdInput.addEventListener("input", handleSettingsInput);
+
+  const settingsInputs = [
+    dom.spreadsheetIdInput,
+    dom.spreadsheetLabelInput,
+    dom.sheetRangeInput,
+    dom.driveFolderIdInput,
+    dom.nextAgencyApiBaseUrlInput,
+    dom.nextAgencyAccessTokenInput,
+    dom.nextAgencyAssignedToDisplayNameInput,
+    dom.nextAgencyAssignedToUserIdInput,
+    dom.nextAgencyTaskStageInput,
+    dom.nextAgencyTaskTypeInput,
+    dom.nextAgencyTaskPriorityInput,
+    dom.nextAgencyCasePageSizeInput,
+    dom.nextAgencyTaskDueTimeUtcInput
+  ];
+
+  for (const input of settingsInputs) {
+    input.addEventListener("input", handleSettingsInput);
+  }
 }
 
 function getPageFromHash() {
@@ -104,10 +160,11 @@ async function loadServerConfig() {
       throw new Error("Config request failed.");
     }
 
-    state.serverConfig = await response.json();
-    dom.spreadsheetIdInput.value = state.serverConfig.spreadsheetId || "";
-    dom.sheetRangeInput.value = state.serverConfig.range || "Medications!A:M";
-    dom.driveFolderIdInput.value = state.serverConfig.driveFolderId || "";
+    state.serverConfig = {
+      ...EMPTY_CONFIG,
+      ...(await response.json())
+    };
+    applyServerConfigToInputs();
     setSettingsStatus(
       state.serverConfig.settingsSaved
         ? "Saved server settings loaded."
@@ -115,22 +172,43 @@ async function loadServerConfig() {
       "success"
     );
   } catch (error) {
-    state.serverConfig = {
-      driveFolderId: "",
-      hasGoogleCredentials: false,
-      settingsSaved: false,
-      range: "",
-      spreadsheetId: ""
-    };
-    dom.driveFolderIdInput.value = "";
-    dom.spreadsheetIdInput.value = "";
-    dom.sheetRangeInput.value = "Medications!A:M";
+    state.serverConfig = { ...EMPTY_CONFIG };
+    applyServerConfigToInputs();
     setSheetStatus(
       "Could not load server config. You can still enter the sheet details manually.",
       "error"
     );
     setSettingsStatus("Settings could not be loaded from the server.", "error");
   }
+
+  updateActionState();
+}
+
+function applyServerConfigToInputs() {
+  dom.spreadsheetIdInput.value = state.serverConfig.spreadsheetId || "";
+  dom.spreadsheetLabelInput.value = state.serverConfig.spreadsheetLabel || "Medications";
+  dom.sheetRangeInput.value = state.serverConfig.range || "Medications!A:M";
+  dom.driveFolderIdInput.value = state.serverConfig.driveFolderId || "";
+  dom.nextAgencyApiBaseUrlInput.value =
+    state.serverConfig.nextAgencyApiBaseUrl || "https://yahoo.nextbroker.io";
+  dom.nextAgencyAccessTokenInput.value = "";
+  dom.nextAgencyAssignedToDisplayNameInput.value =
+    state.serverConfig.nextAgencyAssignedToDisplayName || "Shelby Holman";
+  dom.nextAgencyAssignedToUserIdInput.value =
+    state.serverConfig.nextAgencyAssignedToUserId || "";
+  dom.nextAgencyTaskStageInput.value = state.serverConfig.nextAgencyTaskStage || "To Do";
+  dom.nextAgencyTaskTypeInput.value = state.serverConfig.nextAgencyTaskType || "Other";
+  dom.nextAgencyTaskPriorityInput.value = String(
+    state.serverConfig.nextAgencyTaskPriority || 1
+  );
+  dom.nextAgencyCasePageSizeInput.value = String(
+    state.serverConfig.nextAgencyCasePageSize || 50
+  );
+  dom.nextAgencyTaskDueTimeUtcInput.value =
+    state.serverConfig.nextAgencyTaskDueTimeUtc || "05:00 AM UTC";
+  dom.nextAgencyAccessTokenInput.placeholder = state.serverConfig.hasNextAgencyAccessToken
+    ? "Leave blank to keep the saved token"
+    : "Paste a NextAgency access token";
 }
 
 function handleSettingsInput() {
@@ -145,15 +223,26 @@ async function saveSettings() {
 
   try {
     const response = await fetch("/api/settings", {
-      method: "POST",
+      body: JSON.stringify({
+        driveFolderId: dom.driveFolderIdInput.value.trim(),
+        nextAgencyAccessToken: dom.nextAgencyAccessTokenInput.value.trim(),
+        nextAgencyApiBaseUrl: dom.nextAgencyApiBaseUrlInput.value.trim(),
+        nextAgencyAssignedToDisplayName:
+          dom.nextAgencyAssignedToDisplayNameInput.value.trim(),
+        nextAgencyAssignedToUserId: dom.nextAgencyAssignedToUserIdInput.value.trim(),
+        nextAgencyCasePageSize: dom.nextAgencyCasePageSizeInput.value.trim(),
+        nextAgencyTaskDueTimeUtc: dom.nextAgencyTaskDueTimeUtcInput.value.trim(),
+        nextAgencyTaskPriority: dom.nextAgencyTaskPriorityInput.value.trim(),
+        nextAgencyTaskStage: dom.nextAgencyTaskStageInput.value.trim(),
+        nextAgencyTaskType: dom.nextAgencyTaskTypeInput.value.trim(),
+        range: dom.sheetRangeInput.value.trim(),
+        spreadsheetId: dom.spreadsheetIdInput.value.trim(),
+        spreadsheetLabel: dom.spreadsheetLabelInput.value.trim()
+      }),
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        driveFolderId: dom.driveFolderIdInput.value.trim(),
-        range: dom.sheetRangeInput.value.trim(),
-        spreadsheetId: dom.spreadsheetIdInput.value.trim()
-      })
+      method: "POST"
     });
 
     const payload = await response.json();
@@ -161,14 +250,7 @@ async function saveSettings() {
       throw new Error(payload.error || "Could not save settings.");
     }
 
-    state.serverConfig = {
-      ...(state.serverConfig || {}),
-      ...payload.settings,
-      settingsSaved: true
-    };
-    dom.driveFolderIdInput.value = payload.settings.driveFolderId || "";
-    dom.sheetRangeInput.value = payload.settings.range || "Medications!A:M";
-    dom.spreadsheetIdInput.value = payload.settings.spreadsheetId || "";
+    await loadServerConfig();
     setSettingsStatus("Settings saved on the server.", "success");
   } catch (error) {
     setSettingsStatus(
@@ -234,9 +316,14 @@ async function processFiles(files) {
         fileName: file.name,
         fileSize: file.size,
         file,
-        sourceLink: "",
+        notes: [error instanceof Error ? error.message : "Unknown parsing error"],
+        patient: {
+          firstName: "",
+          fullName: "",
+          lastName: ""
+        },
         rows: [],
-        notes: [error instanceof Error ? error.message : "Unknown parsing error"]
+        sourceLink: ""
       });
     }
   }
@@ -316,9 +403,14 @@ function buildResult(file, text) {
     fileName: file.name,
     fileSize: file.size,
     file,
-    sourceLink: "",
+    notes,
+    patient: {
+      firstName: shared.firstName,
+      fullName: shared.fullName,
+      lastName: shared.lastName
+    },
     rows,
-    notes
+    sourceLink: ""
   };
 }
 
@@ -599,19 +691,19 @@ function extractPrescriptionRows(lines, shared) {
 
 function buildSheetRow(shared, partialRow) {
   return {
+    address: shared.address,
+    dateOfBirth: shared.dateOfBirth,
+    dosage: partialRow.dosage || "",
+    email: shared.email,
     firstName: shared.firstName,
+    frequencyTaken: partialRow.frequencyTaken || "",
     lastName: shared.lastName,
-    source: "",
     med: partialRow.med || "",
     medicationType: partialRow.medicationType || "",
-    dosage: partialRow.dosage || "",
-    frequencyTaken: partialRow.frequencyTaken || "",
+    phone: shared.phone,
     refillSchedule: partialRow.refillSchedule || "",
     signatureDate: shared.signatureDate,
-    email: shared.email,
-    phone: shared.phone,
-    address: shared.address,
-    dateOfBirth: shared.dateOfBirth
+    source: ""
   };
 }
 
@@ -636,14 +728,15 @@ function clearResults() {
 async function copyJson() {
   const payload = JSON.stringify(
     {
-      rows: flattenRows(),
       files: state.results.map((result) => ({
         fileName: result.fileName,
         fileSize: result.fileSize,
-        sourceLink: result.sourceLink || "",
+        notes: result.notes,
+        patient: result.patient,
         rows: result.rows,
-        notes: result.notes
-      }))
+        sourceLink: result.sourceLink || ""
+      })),
+      rows: flattenRows()
     },
     null,
     2
@@ -653,6 +746,61 @@ async function copyJson() {
   window.setTimeout(() => {
     dom.copyButton.textContent = "Copy JSON";
   }, 1400);
+}
+
+function buildTaskRequest() {
+  const title = dom.taskTitleInput.value.trim();
+  const dueDate = dom.taskDueDateInput.value.trim();
+
+  if (!title && !dueDate) {
+    return null;
+  }
+
+  if (!title || !dueDate) {
+    throw new Error("Enter both a task title and due date, or leave both blank.");
+  }
+
+  if (!state.serverConfig.hasNextAgencyConfigured) {
+    throw new Error(
+      "Save the NextAgency access token and Shelby's assigned user ID in Settings before creating tasks."
+    );
+  }
+
+  return { dueDate, title };
+}
+
+function collectPatientsForTasks(results) {
+  const byName = new Map();
+
+  for (const result of results) {
+    const patient = result.patient || {};
+    const fullName = (patient.fullName || "").trim();
+    const fallbackName = [patient.firstName || "", patient.lastName || ""]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    const patientName = fullName || fallbackName;
+
+    if (!patientName) {
+      continue;
+    }
+
+    const key = patientName.toLowerCase().replace(/\s+/g, " ");
+    if (!byName.has(key)) {
+      byName.set(key, {
+        fileName: result.fileName,
+        firstName: patient.firstName || "",
+        fullName: patientName,
+        lastName: patient.lastName || ""
+      });
+      continue;
+    }
+
+    const existing = byName.get(key);
+    existing.fileName = `${existing.fileName}, ${result.fileName}`;
+  }
+
+  return [...byName.values()];
 }
 
 async function appendRowsToSheet() {
@@ -669,6 +817,26 @@ async function appendRowsToSheet() {
 
   if (!spreadsheetId || !range) {
     setSheetStatus("Enter both Spreadsheet ID and range before writing.", "error");
+    return;
+  }
+
+  let taskRequest = null;
+  let taskPatients = [];
+
+  try {
+    taskRequest = buildTaskRequest();
+    taskPatients = taskRequest ? collectPatientsForTasks(resultFiles) : [];
+
+    if (taskRequest && !taskPatients.length) {
+      throw new Error(
+        "No exact patient names were extracted from the uploaded PDFs, so no NextAgency task can be created."
+      );
+    }
+  } catch (error) {
+    setSheetStatus(
+      error instanceof Error ? error.message : "Task setup is incomplete.",
+      "error"
+    );
     return;
   }
 
@@ -695,27 +863,37 @@ async function appendRowsToSheet() {
     }
 
     setSheetStatus("Writing exact rows to Google Sheets...", "");
-    const response = await fetch("/api/google-sheets/append", {
-      method: "POST",
+    const sheetResponse = await fetch("/api/google-sheets/append", {
+      body: JSON.stringify({
+        range,
+        rows: flattenRows(),
+        spreadsheetId
+      }),
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        spreadsheetId,
-        range,
-        rows: flattenRows()
-      })
+      method: "POST"
     });
 
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error || "Google Sheets write failed.");
+    const sheetPayload = await sheetResponse.json();
+    if (!sheetResponse.ok) {
+      throw new Error(sheetPayload.error || "Google Sheets write failed.");
     }
 
-    const updatedRows = Number(payload.updatedRows || 0);
+    let taskPayload = null;
+    if (taskRequest) {
+      setSheetStatus("Creating NextAgency tasks...", "");
+      taskPayload = await createNextAgencyTasks(taskRequest, taskPatients);
+    }
+
+    const updatedRows = Number(sheetPayload.updatedRows || 0);
     setSheetStatus(
-      `Uploaded ${resultFiles.length} PDF${resultFiles.length === 1 ? "" : "s"} to Drive and wrote ${updatedRows} row${updatedRows === 1 ? "" : "s"} to Google Sheets.`,
-      "success"
+      buildCompletionMessage({
+        resultFiles,
+        taskPayload,
+        updatedRows
+      }),
+      taskPayload && !taskPayload.ok ? "" : "success"
     );
     render();
   } catch (error) {
@@ -727,6 +905,71 @@ async function appendRowsToSheet() {
     state.isWriting = false;
     updateActionState();
   }
+}
+
+async function createNextAgencyTasks(taskRequest, taskPatients) {
+  const response = await fetch("/api/nextagency/tasks", {
+    body: JSON.stringify({
+      dueDate: taskRequest.dueDate,
+      patients: taskPatients,
+      title: taskRequest.title
+    }),
+    headers: {
+      "Content-Type": "application/json"
+    },
+    method: "POST"
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || "NextAgency task creation failed.");
+  }
+
+  return payload;
+}
+
+function buildCompletionMessage({ resultFiles, taskPayload, updatedRows }) {
+  const pieces = [
+    `Uploaded ${resultFiles.length} PDF${resultFiles.length === 1 ? "" : "s"} to Drive`,
+    `wrote ${updatedRows} row${updatedRows === 1 ? "" : "s"} to Google Sheets`
+  ];
+
+  if (!taskPayload) {
+    return `${pieces.join(", and ")}.`;
+  }
+
+  pieces.push(
+    `created ${Number(taskPayload.createdCount || 0)} NextAgency task${
+      Number(taskPayload.createdCount || 0) === 1 ? "" : "s"
+    }`
+  );
+
+  const notes = [];
+  if (taskPayload.unmatchedPatients?.length) {
+    notes.push(
+      `no exact case match for ${taskPayload.unmatchedPatients
+        .map((patient) => patient.patientName)
+        .join(", ")}`
+    );
+  }
+  if (taskPayload.ambiguousPatients?.length) {
+    notes.push(
+      `multiple cases matched ${taskPayload.ambiguousPatients
+        .map((patient) => patient.patientName)
+        .join(", ")}`
+    );
+  }
+  if (taskPayload.erroredPatients?.length) {
+    notes.push(
+      `task creation failed for ${taskPayload.erroredPatients
+        .map((patient) => patient.patientName)
+        .join(", ")}`
+    );
+  }
+
+  return notes.length
+    ? `${pieces.join(", and ")}. Note: ${notes.join("; ")}.`
+    : `${pieces.join(", and ")}.`;
 }
 
 function flattenRows() {
@@ -774,11 +1017,16 @@ function render() {
       const notes = result.notes.length
         ? `<p class="result-notes">${escapeHtml(result.notes.join(" "))}</p>`
         : "";
+      const patientName = (result.patient?.fullName || "").trim() || "No patient name found";
 
       card.innerHTML = `
         <h3>${escapeHtml(result.fileName)}</h3>
         <p class="result-meta">${formatFileSize(result.fileSize)}</p>
         <div class="data-grid">
+          <div>
+            <span class="eyebrow">Patient</span>
+            <strong>${escapeHtml(patientName)}</strong>
+          </div>
           <div>
             <span class="eyebrow">Exact rows found</span>
             <strong>${result.rows.length}</strong>
@@ -818,13 +1066,27 @@ function updateActionState() {
   const hasCredentials = Boolean(state.serverConfig?.hasGoogleCredentials);
   dom.appendButton.disabled = !hasRows || !hasTarget || !hasCredentials || state.isWriting;
   dom.saveSettingsButton.disabled = state.isSavingSettings;
-  updateConfigBadge(dom.navConfigBadge, hasCredentials, "Server ready", "Missing credentials");
+
+  updateSummaryBadge(dom.navConfigBadge, state.serverConfig);
   updateConfigBadge(
     dom.configBadge,
-    hasCredentials,
-    "Credentials ready",
-    "Missing server credentials"
+    Boolean(state.serverConfig?.hasGoogleCredentials),
+    "Google ready",
+    "Missing Google credentials"
   );
+  updateConfigBadge(
+    dom.nextAgencyBadge,
+    Boolean(state.serverConfig?.hasNextAgencyConfigured),
+    "NextAgency ready",
+    "NextAgency setup needed"
+  );
+}
+
+function updateSummaryBadge(element, config) {
+  const label = config?.configLabel || "Setup needed";
+  element.textContent = label;
+  element.classList.toggle("is-ready", label !== "Setup needed");
+  element.classList.toggle("is-missing", label === "Setup needed");
 }
 
 function updateConfigBadge(element, isReady, readyText, missingText) {
@@ -835,13 +1097,13 @@ function updateConfigBadge(element, isReady, readyText, missingText) {
 
 async function uploadOriginalPdfToDrive(file, driveFolderId) {
   const response = await fetch("/api/google-drive/upload", {
-    method: "POST",
+    body: file,
     headers: {
       "Content-Type": file.type || "application/pdf",
-      "x-file-name": encodeURIComponent(file.name),
-      "x-drive-folder-id": driveFolderId
+      "x-drive-folder-id": driveFolderId,
+      "x-file-name": encodeURIComponent(file.name)
     },
-    body: file
+    method: "POST"
   });
 
   const payload = await response.json();
@@ -879,7 +1141,7 @@ function formatFileSize(bytes) {
 }
 
 function escapeHtml(value) {
-  return value
+  return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")

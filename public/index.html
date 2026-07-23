@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=20260722-1" />
+    <link rel="stylesheet" href="/styles.css?v=20260722-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -96,6 +96,38 @@
             <article class="surface info-surface">
               <div class="section-head">
                 <div>
+                  <p class="eyebrow">Task setup</p>
+                  <h3>Optional NextAgency task</h3>
+                </div>
+              </div>
+
+              <div class="inline-fields">
+                <label class="field">
+                  <span>Task title</span>
+                  <input
+                    id="taskTitleInput"
+                    type="text"
+                    placeholder="Example: Review uploaded medication worksheet"
+                    autocomplete="off"
+                  />
+                </label>
+
+                <label class="field">
+                  <span>Due date</span>
+                  <input id="taskDueDateInput" type="date" />
+                </label>
+              </div>
+
+              <p class="support-text">
+                Leave both blank if you only want Drive and Sheets. If both are
+                filled, the app creates one NextAgency task per unique patient
+                whose case name matches exactly.
+              </p>
+
+              <div class="section-break"></div>
+
+              <div class="section-head section-head-tight">
+                <div>
                   <p class="eyebrow">Checklist</p>
                   <h3>Keep extraction exact</h3>
                 </div>
@@ -124,7 +156,7 @@
                 type="button"
                 disabled
               >
-                Upload PDFs to Drive and write exact rows
+                Upload PDFs, write rows, and create tasks if requested
               </button>
               <p id="sheetStatus" class="support-text" aria-live="polite"></p>
             </article>
@@ -204,6 +236,16 @@
               </label>
 
               <label class="field">
+                <span>Spreadsheet label for task body</span>
+                <input
+                  id="spreadsheetLabelInput"
+                  type="text"
+                  placeholder="Example: Medications"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label class="field">
                 <span>Range</span>
                 <input
                   id="sheetRangeInput"
@@ -231,30 +273,145 @@
               </div>
             </article>
 
-            <article class="surface helper-surface">
+            <article class="surface settings-surface">
               <div class="section-head">
                 <div>
-                  <p class="eyebrow">Server</p>
-                  <h3>What belongs in Railway</h3>
+                  <p class="eyebrow">Automation</p>
+                  <h3>NextAgency task defaults</h3>
                 </div>
+                <span id="nextAgencyBadge" class="panel-badge">Checking config</span>
               </div>
 
-              <ul class="rule-list">
-                <li>`GOOGLE_SERVICE_ACCOUNT_EMAIL`</li>
-                <li>`GOOGLE_PRIVATE_KEY`</li>
-                <li>`SETTINGS_FILE_PATH` if you want persistent saved settings</li>
-              </ul>
+              <label class="field">
+                <span>NextAgency API base URL</span>
+                <input
+                  id="nextAgencyApiBaseUrlInput"
+                  type="text"
+                  placeholder="https://yahoo.nextbroker.io"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label class="field">
+                <span>NextAgency access token</span>
+                <input
+                  id="nextAgencyAccessTokenInput"
+                  type="password"
+                  placeholder="Leave blank to keep the saved token"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label class="field">
+                <span>Assigned to name</span>
+                <input
+                  id="nextAgencyAssignedToDisplayNameInput"
+                  type="text"
+                  placeholder="Shelby Holman"
+                  autocomplete="off"
+                />
+              </label>
+
+              <label class="field">
+                <span>Assigned to user ID</span>
+                <input
+                  id="nextAgencyAssignedToUserIdInput"
+                  type="text"
+                  placeholder="Paste Shelby's NextAgency user ID"
+                  autocomplete="off"
+                />
+              </label>
+
+              <div class="inline-fields inline-fields-compact">
+                <label class="field">
+                  <span>Task stage</span>
+                  <input
+                    id="nextAgencyTaskStageInput"
+                    type="text"
+                    placeholder="To Do"
+                    autocomplete="off"
+                  />
+                </label>
+
+                <label class="field">
+                  <span>Task type</span>
+                  <input
+                    id="nextAgencyTaskTypeInput"
+                    type="text"
+                    placeholder="Other"
+                    autocomplete="off"
+                  />
+                </label>
+              </div>
+
+              <div class="inline-fields inline-fields-compact">
+                <label class="field">
+                  <span>Task priority</span>
+                  <input
+                    id="nextAgencyTaskPriorityInput"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="1"
+                    placeholder="1"
+                  />
+                </label>
+
+                <label class="field">
+                  <span>Case page size</span>
+                  <input
+                    id="nextAgencyCasePageSizeInput"
+                    type="number"
+                    min="1"
+                    max="50"
+                    step="1"
+                    placeholder="50"
+                  />
+                </label>
+              </div>
+
+              <label class="field">
+                <span>Due time suffix</span>
+                <input
+                  id="nextAgencyTaskDueTimeUtcInput"
+                  type="text"
+                  placeholder="05:00 AM UTC"
+                  autocomplete="off"
+                />
+              </label>
 
               <p class="support-text">
-                Share both the Google Sheet and the Google Drive folder with the
-                service account email.
+                The upload page asks for the task title and due date, then uses
+                these saved defaults when it creates the task on the matched
+                case.
               </p>
             </article>
+          </section>
+
+          <section class="surface helper-surface">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Server</p>
+                <h3>What still belongs in Railway</h3>
+              </div>
+            </div>
+
+            <ul class="rule-list">
+              <li>`GOOGLE_SERVICE_ACCOUNT_EMAIL`</li>
+              <li>`GOOGLE_PRIVATE_KEY`</li>
+              <li>`SETTINGS_FILE_PATH` if you want persistent saved settings</li>
+            </ul>
+
+            <p class="support-text">
+              Share both the Google Sheet and the Google Drive folder with the
+              service account email. The NextAgency token can be saved from this
+              Settings page for a private deployment.
+            </p>
           </section>
         </section>
       </main>
     </div>
 
-    <script type="module" src="/app.js?v=20260722-1"></script>
+    <script type="module" src="/app.js?v=20260722-2"></script>
   </body>
 </html>
